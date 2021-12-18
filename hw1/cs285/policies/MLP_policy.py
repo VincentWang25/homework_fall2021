@@ -79,9 +79,16 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs
         else:
             observation = obs[None]
+        observation = ptu.from_numpy(observation).to(ptu.device)
+        with torch.no_grad():
+            if self.discrete:
+                action = self.logits_na(observation)
+            else:
+                action = self.mean_net(observation)
+        
 
         # TODO return the action that the policy prescribes
-        raise NotImplementedError
+        raise ptu.to_numpy(action)
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -109,7 +116,16 @@ class MLPPolicySL(MLPPolicy):
             adv_n=None, acs_labels_na=None, qvals=None
     ):
         # TODO: update the policy and return the loss
-        loss = TODO
+        self.optimizer.zero_grad()
+        if self.discrete:
+            outputs = self.logits_na(observations)
+        else:
+            outputs = self.mean_net(observations)
+
+        loss = self.loss(outputs, actions)
+        loss.backward()
+        self.optimizer.step()
+        # TODO: what is adv_n, acs_labels_na, qvals
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),
