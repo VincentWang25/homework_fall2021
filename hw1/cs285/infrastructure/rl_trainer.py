@@ -67,7 +67,6 @@ class RL_Trainer(object):
         #############
         ## AGENT
         #############
-
         agent_class = self.params['agent_class']
         self.agent = agent_class(self.env, self.params['agent_params'])
 
@@ -172,6 +171,8 @@ class RL_Trainer(object):
         else:
             with open(load_initial_expertdata, 'rb') as f:
                 paths = pickle.load(f)  
+            expert_returns = [path["reward"].sum() for path in paths]
+            print("Expert Average Return: {}".format(np.mean(expert_returns)))
             envsteps_this_batch = 0          
 
 
@@ -210,7 +211,7 @@ class RL_Trainer(object):
         # HINT: query the policy (using the get_action function) with paths[i]["observation"]
         # and replace paths[i]["action"] with these expert labels
         for i in range(len(paths)):
-            paths[i]['action'] = expert_policy.get_action(paths[i]['observation'])
+            paths[i]['action'] = expert_policy.get_action(np.array(paths[i]['observation']))
         return paths
 
     ####################################
