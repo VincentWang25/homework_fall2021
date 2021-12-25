@@ -55,23 +55,76 @@ def mean_squared_error(a, b):
 ############################################
 
 def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array')):
-    # TODO: get this from hw1 or hw2
+
+    # initialize env for the beginning of a new rollout
+    ob = env.reset()
+
+    # init vars
+    obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []
+    steps = 0
+    while True:
+
+        # render image of the simulated env
+        if render:
+            if 'rgb_array' in render_mode:
+                if hasattr(env, 'sim'):
+                    image_obs.append(env.sim.render(camera_name='track', height=500, width=500)[::-1])
+                else:
+                    image_obs.append(env.render(mode=render_mode))
+            if 'human' in render_mode:
+                env.render(mode=render_mode)
+                time.sleep(env.model.opt.timestep)
+
+        # use the most recent ob to decide what to do
+        obs.append(ob)
+        ac = policy.get_action(np.array(obs[-1]))
+        ac = ac[0]
+        acs.append(ac)
+
+        # take that action and record results
+        ob, rew, done, _ = env.step(ac)
+
+        # record result of taking that action
+        steps += 1
+        next_obs.append(ob)
+        rewards.append(rew)
+
+        rollout_done = done or steps >= max_path_length # HINT: this is either 0 or 1
+        terminals.append(rollout_done)
+
+        if rollout_done:
+            break
+
+    return Path(obs, image_obs, acs, rewards, next_obs, terminals)
 
 def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, render=False, render_mode=('rgb_array')):
     """
         Collect rollouts using policy
         until we have collected min_timesteps_per_batch steps
     """
-    # TODO: get this from hw1 or hw2
-
+    # njobs = mp.cpu_count()
+    # print("njobs: ", njobs)
+    timesteps_this_batch = 0
+    paths = []
+    while timesteps_this_batch < min_timesteps_per_batch:
+        # tmp_paths =  [pool.apply(sample_trajectory, args=(env, policy, max_path_length, render, render_mode)) for _ in range(njobs)]
+        # timesteps_this_batch += sum(get_pathlength(path) for path in tmp_paths)
+        # paths.extend(tmp_paths)
+        path = sample_trajectory(env, policy, max_path_length, render, render_mode)
+        timesteps_this_batch += get_pathlength(path)
+        paths.append(path)
+        
     return paths, timesteps_this_batch
 
 def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, render_mode=('rgb_array')):
     """
         Collect ntraj rollouts using policy
     """
-    # TODO: get this from hw1 or hw2
-
+    paths = [sample_trajectory(env, policy, max_path_length, render, render_mode) for _ in range(ntraj)]
+    # njobs = mp.cpu_count()
+    # print("njobs: ", njobs)
+    # with mp.Pool(njobs) as pool:
+    #     paths = [pool.apply(sample_trajectory, args=(env, policy, max_path_length, render, render_mode)) for _ in range(ntraj)]
     return paths
 
 ############################################
