@@ -6,6 +6,7 @@ class Obstacles(gym.Env):
     def __init__(self, start=[-0.5, 0.75], end=[0.7, -0.8], random_starts=True):
 
         import matplotlib.pyplot as plt #inside, so doesnt get imported when not using this env
+        plt.switch_backend('agg')
         self.plt = plt
 
         self.action_dim = self.ac_dim = 2
